@@ -1,0 +1,2758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#eef2f7">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="输入 A/B/C 三相电流，实时计算三相四线制零线（中性线）电流。支持快速矢量公式与逐相相角精确计算。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="零线电流">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>零线电流计算器</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2040%2040%22%3E%0A%20%20%3Crect%20width%3D%2240%22%20height%3D%2240%22%20rx%3D%2211%22%20fill%3D%22%230B1220%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%2211.5%22%20fill%3D%22none%22%20stroke%3D%22rgba(255%2C255%2C255%2C.12)%22%20stroke-width%3D%22.8%22%20stroke-dasharray%3D%222%202.5%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M20%2020%20L20%209.5%22%20stroke%3D%22%23FBBF24%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M20%2020%20L29.3%2025.4%22%20stroke%3D%22%234ADE80%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%3Cpath%20d%3D%22M20%2020%20L10.7%2025.4%22%20stroke%3D%22%23FB7185%22%20stroke-width%3D%222.6%22%20stroke-linecap%3D%22round%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%2220%22%20cy%3D%2220%22%20r%3D%222.8%22%20fill%3D%22%2367E8F9%22%2F%3E%0A%3C%2Fsvg%3E%0A" type="image/svg+xml">
+  <style>
+:root {
+  --bg: #eef2f7;
+  --surface: #ffffff;
+  --ink: #101828;
+  --muted: #667085;
+  --soft: #98a2b3;
+  --line: #e4e9f2;
+  --navy: #0b1220;
+  --cyan: #67e8f9;
+  --amber: #f59e0b;
+  --green: #22c55e;
+  --red: #ef4444;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 14px 30px -22px rgba(16, 24, 40, 0.22);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --mono: "SFMono-Regular", "SF Mono", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--ink);
+  font-family: var(--font);
+  background:
+    radial-gradient(900px 520px at 18% -12%, rgba(191, 219, 254, 0.6), transparent 58%),
+    radial-gradient(760px 460px at 108% 4%, rgba(254, 240, 199, 0.62), transparent 55%),
+    var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.app {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+  padding:
+    calc(12px + env(safe-area-inset-top, 0px))
+    16px
+    calc(26px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  margin-bottom: 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.brand-mark {
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  box-shadow: 0 8px 18px -10px rgba(11, 18, 32, 0.7);
+}
+
+.brand-mark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.brand-text h1 {
+  margin: 0;
+  font-size: 16.5px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+}
+
+.brand-text p {
+  margin: 2px 0 0;
+  font-size: 7.5px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 2.05px;
+  color: var(--soft);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 37px;
+  padding: 0;
+  border: 1px solid rgba(228, 233, 242, 0.95);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.82);
+  color: #475467;
+  box-shadow: 0 3px 10px -6px rgba(16, 24, 40, 0.25);
+  transition: color 0.18s ease, background 0.18s ease, transform 0.18s ease, opacity 0.18s ease;
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-btn:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.icon-btn:disabled {
+  opacity: 0.38;
+}
+
+@media (hover: hover) {
+  .icon-btn:hover:not(:disabled) {
+    color: var(--ink);
+    background: #fff;
+  }
+}
+
+/* ---------- result ---------- */
+
+.result-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 30px;
+  padding: 18px 18px 14px;
+  color: #fff;
+  background:
+    radial-gradient(320px 220px at 104% -18%, rgba(34, 211, 238, 0.22), transparent 64%),
+    radial-gradient(300px 240px at -18% 118%, rgba(59, 130, 246, 0.14), transparent 60%),
+    linear-gradient(145deg, #0a1120 0%, #101f36 58%, #0b172a 100%);
+  box-shadow:
+    0 26px 50px -30px rgba(3, 10, 25, 0.8),
+    0 3px 8px rgba(3, 10, 25, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  isolation: isolate;
+}
+
+.result-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px);
+  background-size: 21px 21px;
+  -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 76%);
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent 76%);
+  pointer-events: none;
+}
+
+.result-card::after {
+  content: "";
+  position: absolute;
+  top: -105px;
+  right: -95px;
+  z-index: -1;
+  width: 230px;
+  height: 230px;
+  border: 1px solid rgba(103, 232, 249, 0.12);
+  border-radius: 50%;
+  box-shadow: 0 0 0 28px rgba(103, 232, 249, 0.025), 0 0 0 60px rgba(103, 232, 249, 0.015);
+  pointer-events: none;
+}
+
+.result-top {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.result-main {
+  min-width: 0;
+}
+
+.result-kicker {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #a8b7cc;
+  font-size: 11.5px;
+  font-weight: 550;
+  letter-spacing: 0.45px;
+}
+
+.formula-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 19px;
+  padding: 0 6px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #cbd7e8;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+.result-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  min-height: 63px;
+  margin-top: 4px;
+}
+
+.result-value {
+  color: #f7fbff;
+  font-size: clamp(45px, 14.6vw, 58px);
+  line-height: 1.03;
+  font-weight: 650;
+  letter-spacing: -2.6px;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 28px rgba(103, 232, 249, 0.09);
+  white-space: nowrap;
+}
+
+.result-value.is-large {
+  font-size: clamp(36px, 11vw, 44px);
+  letter-spacing: -2px;
+}
+
+.result-unit {
+  margin-left: 3px;
+  color: #91a5be;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 100%;
+  margin-top: 8px;
+  padding: 5px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: #aebbd0;
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+
+.status-chip[data-tone="green"] {
+  border-color: rgba(52, 211, 153, 0.18);
+  background: rgba(52, 211, 153, 0.11);
+  color: #6ee7b7;
+}
+
+.status-chip[data-tone="amber"] {
+  border-color: rgba(251, 191, 36, 0.2);
+  background: rgba(251, 191, 36, 0.11);
+  color: #fcd34d;
+}
+
+.status-chip[data-tone="red"] {
+  border-color: rgba(248, 113, 113, 0.22);
+  background: rgba(248, 113, 113, 0.12);
+  color: #fca5a5;
+}
+
+.phasor {
+  flex: 0 0 118px;
+  width: 118px;
+  height: 118px;
+  margin: -1px -4px 0 0;
+}
+
+.phasor svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.phasor-line,
+.phasor-result {
+  transition: opacity 0.2s ease;
+}
+
+.phasor-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: phasor-pulse 2.4s ease-out infinite;
+}
+
+@keyframes phasor-pulse {
+  0% {
+    r: 4.5;
+    opacity: 0.5;
+  }
+  72%,
+  100% {
+    r: 10;
+    opacity: 0;
+  }
+}
+
+.result-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 255, 255, 0.075);
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.metric-label {
+  color: #7f92aa;
+  font-size: 9.5px;
+  line-height: 1.2;
+  letter-spacing: 0.25px;
+}
+
+.metric-value {
+  color: #dbe6f3;
+  font-size: 12.5px;
+  line-height: 1.2;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.metric-value em {
+  margin-left: 2px;
+  color: #7f92aa;
+  font-size: 9.5px;
+  font-style: normal;
+  font-weight: 500;
+}
+
+/* ---------- mode switch ---------- */
+
+.mode-switch {
+  position: relative;
+  display: flex;
+  margin: 14px 0 11px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03), 0 10px 24px -24px rgba(16, 24, 40, 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.mode-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  height: calc(100% - 8px);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0b1220, #1c2e4c);
+  box-shadow: 0 8px 16px -10px rgba(11, 18, 32, 0.75);
+  transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mode-switch[data-mode="precise"] .mode-thumb {
+  transform: translateX(100%);
+}
+
+.mode-btn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  height: 39px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #77859a;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.15px;
+  transition: color 0.25s ease;
+}
+
+.mode-btn.is-active {
+  color: #fff;
+}
+
+/* ---------- input panel ---------- */
+
+.panel {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-card);
+}
+
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 11px;
+}
+
+.panel-title-wrap {
+  min-width: 0;
+}
+
+.panel-head h2 {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.35;
+  font-weight: 700;
+  letter-spacing: 0.15px;
+}
+
+.sample-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 3px 0 0;
+  color: var(--soft);
+  font-size: 9.5px;
+  line-height: 1.3;
+}
+
+.sample-note span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.text-btn {
+  padding: 6px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.text-btn:active {
+  background: #eef2f7;
+}
+
+@media (hover: hover) {
+  .text-btn:hover {
+    color: var(--ink);
+    background: #f2f5f9;
+  }
+}
+
+.action-sep {
+  width: 1px;
+  height: 11px;
+  background: var(--line);
+}
+
+.phase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.phase-card {
+  position: relative;
+  min-width: 0;
+  padding: 10px 8px 8px;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.phase-a {
+  border-color: #fce9b8;
+  background: linear-gradient(180deg, #fffaf0, #fff6e4);
+}
+
+.phase-b {
+  border-color: #cfefd8;
+  background: linear-gradient(180deg, #f4fdf6, #edfaf1);
+}
+
+.phase-c {
+  border-color: #f9d6dc;
+  background: linear-gradient(180deg, #fff7f8, #fff0f2);
+}
+
+.phase-a .phase-dot {
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.13);
+}
+
+.phase-b .phase-dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.13);
+}
+
+.phase-c .phase-dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.phase-grid:not(.is-precise) .phase-a:focus-within {
+  border-color: #f59e0b;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.13);
+}
+
+.phase-grid:not(.is-precise) .phase-b:focus-within {
+  border-color: #22c55e;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.13);
+}
+
+.phase-grid:not(.is-precise) .phase-c:focus-within {
+  border-color: #ef4444;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.phase-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.phase-dot {
+  width: 5.5px;
+  height: 5.5px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.phase-label {
+  overflow: hidden;
+  color: #667085;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: 0.15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.field {
+  min-width: 0;
+}
+
+.field-label {
+  display: none;
+  color: var(--soft);
+  font-size: 8.5px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.current-field {
+  margin-top: 3px;
+}
+
+.field-line {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.num-input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #101828;
+  font-size: 25px;
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.num-input::placeholder {
+  color: #c7ced9;
+  font-weight: 500;
+}
+
+.num-input.is-invalid {
+  color: #b42318;
+}
+
+.field-unit {
+  flex: 0 0 auto;
+  margin-left: 2px;
+  color: var(--soft);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+.angle-field {
+  display: none;
+}
+
+/* precise mode */
+
+.phase-grid.is-precise {
+  grid-template-columns: 1fr;
+  gap: 7px;
+}
+
+.phase-grid.is-precise .phase-card {
+  display: grid;
+  grid-template-columns: 50px minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  padding: 7px;
+  border-color: #e7ecf3;
+  background: #f8fafc;
+}
+
+.phase-grid.is-precise .phase-a {
+  background: linear-gradient(90deg, #fff8e9, #fbfcfe 42%);
+}
+
+.phase-grid.is-precise .phase-b {
+  background: linear-gradient(90deg, #f1fbf4, #fbfcfe 42%);
+}
+
+.phase-grid.is-precise .phase-c {
+  background: linear-gradient(90deg, #fff5f6, #fbfcfe 42%);
+}
+
+.phase-grid.is-precise .phase-head {
+  gap: 5px;
+  padding-left: 2px;
+}
+
+.phase-grid.is-precise .field {
+  display: block;
+  min-width: 0;
+  padding: 4px 8px 3px;
+  border: 1px solid #e4e9f2;
+  border-radius: 10px;
+  background: #fff;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.phase-grid.is-precise .field:focus-within {
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
+}
+
+.phase-grid.is-precise .field-label {
+  display: block;
+  margin-bottom: 1px;
+}
+
+.phase-grid.is-precise .current-field {
+  margin-top: 0;
+}
+
+.phase-grid.is-precise .num-input {
+  font-size: 17px;
+  letter-spacing: -0.25px;
+}
+
+.phase-grid.is-precise .angle-field {
+  display: block;
+}
+
+.pf-link {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 9px 1px 0;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--soft);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.pf-link strong {
+  color: #344054;
+  font-weight: 600;
+}
+
+.pf-link svg {
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.18s ease;
+}
+
+.pf-link:active svg {
+  transform: translateX(2px);
+}
+
+.mode-hint {
+  margin: 9px 1px 0;
+  color: var(--soft);
+  font-size: 9.5px;
+  line-height: 1.55;
+}
+
+/* ---------- insight ---------- */
+
+.insight {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 11px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.025);
+}
+
+.insight-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  background: #eef2f7;
+  color: #667085;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.insight-icon svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.insight p {
+  margin: 1px 0 0;
+  color: #475467;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.insight[data-tone="amber"] .insight-icon {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.insight[data-tone="green"] .insight-icon {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.insight[data-tone="red"] .insight-icon {
+  background: #fee2e2;
+  color: #b42318;
+}
+
+/* ---------- details ---------- */
+
+.calc-details {
+  margin-top: 11px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 19px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.025);
+}
+
+.calc-details summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 14px;
+  list-style: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.calc-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #1d2939;
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.summary-title svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: #667085;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.summary-hint {
+  margin-left: auto;
+  color: var(--soft);
+  font-size: 9px;
+}
+
+.chevron {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.24s ease;
+}
+
+.calc-details[open] .chevron {
+  transform: rotate(180deg);
+}
+
+.details-body {
+  padding: 12px 14px 14px;
+  border-top: 1px solid #f2f4f7;
+}
+
+.calc-empty {
+  margin: 0;
+  color: var(--soft);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.formula-box {
+  overflow-x: auto;
+  padding: 10px 11px;
+  border: 1px solid #edf1f6;
+  border-radius: 11px;
+  background: #f8fafc;
+  color: #344054;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  line-height: 1.85;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.formula-box + .formula-box {
+  margin-top: 7px;
+}
+
+.formula-box strong {
+  color: #0b1220;
+  font-weight: 700;
+}
+
+.formula-box .accent {
+  color: #0e7490;
+}
+
+.calc-note {
+  margin: 7px 1px;
+  color: var(--muted);
+  font-size: 9.5px;
+  line-height: 1.65;
+}
+
+.calc-table {
+  width: 100%;
+  margin-top: 9px;
+  border-collapse: collapse;
+  color: #475467;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calc-table th {
+  padding: 0 4px 5px;
+  border-bottom: 1px solid #e9edf4;
+  color: var(--soft);
+  font-size: 8px;
+  font-weight: 600;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.calc-table td {
+  padding: 5px 4px;
+  border-bottom: 1px solid #f2f4f7;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.calc-table th:first-child,
+.calc-table td:first-child {
+  padding-left: 0;
+  text-align: left;
+}
+
+.calc-table th:last-child,
+.calc-table td:last-child {
+  padding-right: 0;
+}
+
+.calc-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.table-phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.table-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+/* ---------- footer ---------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-top: 15px;
+  color: var(--soft);
+  font-size: 8.5px;
+  letter-spacing: 0.1px;
+}
+
+.footer-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
+.footer-sep {
+  opacity: 0.55;
+}
+
+/* ---------- dialogs ---------- */
+
+body.dialog-open {
+  overflow: hidden;
+}
+
+dialog.sheet {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: 460px;
+  max-height: 88vh;
+  max-height: 88dvh;
+  margin: 0 auto;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 26px 26px 0 0;
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 -30px 70px -20px rgba(11, 18, 32, 0.4);
+}
+
+dialog.sheet[open] {
+  display: flex;
+  flex-direction: column;
+  animation: sheet-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+dialog.sheet::backdrop {
+  background: rgba(11, 18, 32, 0.46);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  animation: backdrop-in 0.25s ease both;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0.6;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sheet-grabber {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 4px;
+  margin: 9px auto 0;
+  border-radius: 999px;
+  background: #e4e7ec;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 0 0 auto;
+  padding: 13px 19px 12px;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.sheet-kicker {
+  margin: 0 0 2px;
+  color: var(--soft);
+  font-size: 8px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+}
+
+.sheet-head h2 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.sheet-close {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--muted);
+}
+
+.sheet-close svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+
+.sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 16px 19px calc(22px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.info-section + .info-section,
+.info-section + .info-callout,
+.info-callout + .info-section {
+  margin-top: 18px;
+}
+
+.info-section h3 {
+  margin: 0 0 6px;
+  color: #101828;
+  font-size: 11.5px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.info-section p {
+  margin: 0;
+  color: #475467;
+  font-size: 10.5px;
+  line-height: 1.75;
+}
+
+.mode-explain {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.mode-explain p {
+  flex: 1;
+  padding-top: 1px;
+}
+
+.explain-tag {
+  flex: 0 0 auto;
+  padding: 2px 5px;
+  border-radius: 5px;
+  font-size: 8.5px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.tag-quick {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.tag-precise {
+  background: #ecfdf3;
+  color: #047857;
+}
+
+.info-formula {
+  overflow-x: auto;
+  margin: 7px 0 0;
+  padding: 8px 10px;
+  border: 1px solid #edf1f6;
+  border-radius: 9px;
+  background: #f8fafc;
+  color: #344054;
+  font-family: var(--mono);
+  font-size: 9px;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.info-small {
+  margin-top: 7px;
+  color: var(--soft) !important;
+  font-size: 9px !important;
+}
+
+.info-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 18px;
+  padding: 11px 12px;
+  border: 1px solid #fde7b0;
+  border-radius: 14px;
+  background: #fffaeb;
+}
+
+.info-callout > svg {
+  flex: 0 0 17px;
+  width: 17px;
+  height: 17px;
+  margin-top: 1px;
+  fill: none;
+  stroke: #b54708;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.info-callout strong {
+  display: block;
+  margin-bottom: 3px;
+  color: #93370d;
+  font-size: 10.5px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.info-callout p {
+  margin: 0;
+  color: #7a3b0c;
+  font-size: 9.5px;
+  line-height: 1.7;
+}
+
+/* ---------- PF dialog ---------- */
+
+.sheet-desc {
+  margin: 0 0 16px;
+  color: #475467;
+  font-size: 10.5px;
+  line-height: 1.7;
+}
+
+.pf-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #344054;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.pf-input-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #f8fafc;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.pf-input-wrap:focus-within {
+  border-color: #94a3b8;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.12);
+}
+
+.pf-input-wrap input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 23px;
+  line-height: 1.3;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.pf-input-wrap input.is-invalid {
+  color: #b42318;
+}
+
+.pf-input-wrap span {
+  flex: 0 0 auto;
+  color: var(--soft);
+  font-size: 9px;
+}
+
+.nature-switch {
+  display: flex;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 3px;
+  border-radius: 12px;
+  background: #f2f4f7;
+}
+
+.nature-btn {
+  flex: 1;
+  padding: 8px 6px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  transition: color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.nature-btn.is-active {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(16, 24, 40, 0.12);
+}
+
+.pf-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 13px 15px;
+  border-radius: 14px;
+  background:
+    radial-gradient(160px 100px at 100% 0%, rgba(34, 211, 238, 0.18), transparent 70%),
+    #0b1220;
+  color: #a8b7cc;
+  font-size: 10px;
+}
+
+.pf-preview strong {
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: 21px;
+  line-height: 1;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.primary-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px 16px;
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #0b1220, #1c2e4c);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 650;
+  letter-spacing: 0.2px;
+  box-shadow: 0 12px 24px -16px rgba(11, 18, 32, 0.7);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.primary-btn:disabled {
+  opacity: 0.4;
+}
+
+.primary-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.sheet-footnote {
+  margin: 10px 1px 0;
+  color: var(--soft);
+  font-size: 9px;
+  line-height: 1.6;
+}
+
+/* ---------- toast ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(22px + env(safe-area-inset-bottom, 0px));
+  z-index: 1000;
+  max-width: calc(100vw - 40px);
+  padding: 10px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(11, 18, 32, 0.94);
+  color: #fff;
+  font-size: 10.5px;
+  line-height: 1.4;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, 10px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 14px 30px -14px rgba(11, 18, 32, 0.7);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------- focus / responsive / motion ---------- */
+
+:focus-visible {
+  outline: 2px solid #0ea5e9;
+  outline-offset: 2px;
+}
+
+.num-input:focus-visible,
+.pf-input-wrap input:focus-visible {
+  outline: none;
+}
+
+@media (max-width: 379px) {
+  .app {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .result-card {
+    padding-right: 15px;
+    padding-left: 15px;
+    border-radius: 27px;
+  }
+
+  .phasor {
+    flex-basis: 106px;
+    width: 106px;
+    height: 106px;
+    margin-right: -5px;
+  }
+
+  .result-value {
+    font-size: clamp(42px, 14.2vw, 52px);
+  }
+
+  .result-metrics {
+    gap: 5px;
+  }
+
+  .metric-value {
+    font-size: 11.5px;
+  }
+
+  .phase-card {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .num-input {
+    font-size: 22px;
+  }
+
+  .phase-grid.is-precise .phase-card {
+    grid-template-columns: 45px minmax(0, 1fr) minmax(0, 1fr);
+    gap: 5px;
+    padding: 6px;
+  }
+
+  .phase-grid.is-precise .field {
+    padding-right: 6px;
+    padding-left: 6px;
+  }
+
+  .phase-grid.is-precise .num-input {
+    font-size: 16px;
+  }
+
+  .insight p {
+    font-size: 9.5px;
+  }
+}
+
+@media (min-width: 600px) {
+  .app {
+    padding-top: calc(30px + env(safe-area-inset-top, 0px));
+  }
+
+  dialog.sheet {
+    border-radius: 26px;
+    bottom: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 40 40">
+            <rect width="40" height="40" rx="12" fill="#0B1220"/>
+            <circle cx="20" cy="20" r="11.5" fill="none" stroke="rgba(255,255,255,.09)" stroke-width=".8" stroke-dasharray="2 2.5"/>
+            <path d="M20 20 L20 9.5" stroke="#FBBF24" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M20 20 L29.3 25.4" stroke="#4ADE80" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M20 20 L10.7 25.4" stroke="#FB7185" stroke-width="2.4" stroke-linecap="round"/>
+            <circle cx="20" cy="20" r="2.6" fill="#67E8F9"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>零线电流</h1>
+          <p>NEUTRAL CURRENT</p>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-btn" id="shareBtn" type="button" aria-label="复制计算结果" title="复制计算结果" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="9" y="9" width="11" height="11" rx="2.5"/>
+            <path d="M15 9V6.5A2.5 2.5 0 0 0 12.5 4h-6A2.5 2.5 0 0 0 4 6.5v6A2.5 2.5 0 0 0 6.5 15H9"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="infoBtn" type="button" aria-label="计算说明" title="计算说明">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 11v5.5"/>
+            <path d="M12 7.6v.2"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="result-card" aria-labelledby="resultTitle">
+        <div class="result-top">
+          <div class="result-main">
+            <div class="result-kicker" id="resultTitle">
+              零线电流
+              <span class="formula-tag">I<sub>N</sub></span>
+            </div>
+            <div class="result-value-row">
+              <span class="result-value" id="resultValue">—</span>
+              <span class="result-unit">A</span>
+            </div>
+            <div class="status-chip" id="statusChip" data-tone="idle">
+              <span class="status-dot" aria-hidden="true"></span>
+              <span id="statusText">等待输入</span>
+            </div>
+          </div>
+          <div class="phasor" id="phasor" aria-hidden="true"></div>
+        </div>
+        <div class="result-metrics">
+          <div class="metric">
+            <span class="metric-label">平均电流</span>
+            <span class="metric-value" id="avgValue">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">不平衡度</span>
+            <span class="metric-value" id="unbalanceValue">—</span>
+          </div>
+          <div class="metric">
+            <span class="metric-label">代数和</span>
+            <span class="metric-value" id="sumValue">—</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="mode-switch" id="modeSwitch" data-mode="quick" role="group" aria-label="计算模式">
+        <span class="mode-thumb" aria-hidden="true"></span>
+        <button class="mode-btn is-active" type="button" data-mode="quick" aria-pressed="true">快速计算</button>
+        <button class="mode-btn" type="button" data-mode="precise" aria-pressed="false">精确计算</button>
+      </div>
+
+      <section class="panel" aria-labelledby="inputTitle">
+        <div class="panel-head">
+          <div class="panel-title-wrap">
+            <h2 id="inputTitle">三相电流</h2>
+            <p class="sample-note" id="sampleNote"><span></span>示例数据，直接修改</p>
+          </div>
+          <div class="panel-actions">
+            <button class="text-btn" id="demoBtn" type="button">示例</button>
+            <span class="action-sep" aria-hidden="true"></span>
+            <button class="text-btn" id="clearBtn" type="button">清零</button>
+          </div>
+        </div>
+
+        <div class="phase-grid" id="phaseGrid">
+          <div class="phase-card phase-a">
+            <div class="phase-head">
+              <span class="phase-dot" aria-hidden="true"></span>
+              <span class="phase-label">A 相</span>
+            </div>
+            <div class="field current-field">
+              <label class="field-label" for="currentA">电流</label>
+              <div class="field-line">
+                <input class="num-input" id="currentA" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" value="32" aria-label="A 相电流，单位安培">
+                <span class="field-unit">A</span>
+              </div>
+            </div>
+            <div class="field angle-field">
+              <label class="field-label" for="angleA">相角</label>
+              <div class="field-line">
+                <input class="num-input angle-input" id="angleA" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" value="0" aria-label="A 相电流相角，单位度">
+                <span class="field-unit">°</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="phase-card phase-b">
+            <div class="phase-head">
+              <span class="phase-dot" aria-hidden="true"></span>
+              <span class="phase-label">B 相</span>
+            </div>
+            <div class="field current-field">
+              <label class="field-label" for="currentB">电流</label>
+              <div class="field-line">
+                <input class="num-input" id="currentB" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" value="28" aria-label="B 相电流，单位安培">
+                <span class="field-unit">A</span>
+              </div>
+            </div>
+            <div class="field angle-field">
+              <label class="field-label" for="angleB">相角</label>
+              <div class="field-line">
+                <input class="num-input angle-input" id="angleB" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" value="0" aria-label="B 相电流相角，单位度">
+                <span class="field-unit">°</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="phase-card phase-c">
+            <div class="phase-head">
+              <span class="phase-dot" aria-hidden="true"></span>
+              <span class="phase-label">C 相</span>
+            </div>
+            <div class="field current-field">
+              <label class="field-label" for="currentC">电流</label>
+              <div class="field-line">
+                <input class="num-input" id="currentC" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" value="24" aria-label="C 相电流，单位安培">
+                <span class="field-unit">A</span>
+              </div>
+            </div>
+            <div class="field angle-field">
+              <label class="field-label" for="angleC">相角</label>
+              <div class="field-line">
+                <input class="num-input angle-input" id="angleC" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="0" value="0" aria-label="C 相电流相角，单位度">
+                <span class="field-unit">°</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button class="pf-link" id="pfBtn" type="button" hidden>
+          不知道相角？<strong>用功率因数换算</strong>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8h9M9 4.5 12.5 8 9 11.5"/></svg>
+        </button>
+
+        <p class="mode-hint" id="modeHint">快速模式：假设三相电流相位互差 120°，只需输入电流有效值。</p>
+      </section>
+
+      <div class="insight" id="insight" data-tone="idle">
+        <div class="insight-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M9 18h6M10 21h4"/>
+            <path d="M8.2 14.5a6 6 0 1 1 7.6 0c-.8.6-1.3 1.4-1.3 2.2H9.5c0-.8-.5-1.6-1.3-2.2Z"/>
+          </svg>
+        </div>
+        <p id="insightText">输入 A / B / C 三相电流，零线电流会实时计算。</p>
+      </div>
+
+      <details class="calc-details">
+        <summary>
+          <span class="summary-title">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="3" width="16" height="18" rx="3"/>
+              <path d="M8 7h8M8 11h2M8 15h2M14 11h2M14 15h2"/>
+            </svg>
+            计算过程
+          </span>
+          <span class="summary-hint" id="formulaHint">矢量公式</span>
+          <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg>
+        </summary>
+        <div class="details-body" id="calcSteps">
+          <p class="calc-empty">输入电流后显示计算过程。</p>
+        </div>
+      </details>
+
+      <footer class="footer">
+        <span class="footer-dot" aria-hidden="true"></span>
+        <span>基波计算 · 不含谐波</span>
+        <span class="footer-sep" aria-hidden="true">·</span>
+        <span>结果仅供参考</span>
+      </footer>
+    </main>
+  </div>
+
+  <p class="sr-only" id="liveResult" role="status" aria-live="polite">等待输入三相电流</p>
+
+  <dialog class="sheet" id="infoDialog" aria-labelledby="infoTitle">
+    <div class="sheet-grabber" aria-hidden="true"></div>
+    <header class="sheet-head">
+      <div>
+        <p class="sheet-kicker">ABOUT</p>
+        <h2 id="infoTitle">计算说明</h2>
+      </div>
+      <button class="sheet-close" type="button" data-close="infoDialog" aria-label="关闭">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <div class="sheet-body">
+      <section class="info-section">
+        <h3>适用场景</h3>
+        <p>用于三相四线制、工频正弦波、正序 ABC 的负载。输入 A / B / C 三相电流有效值（RMS），即可得到中性线（零线）的基波电流。</p>
+      </section>
+
+      <section class="info-section">
+        <h3>两种计算模式</h3>
+        <div class="mode-explain">
+          <span class="explain-tag tag-quick">快速</span>
+          <p>假设三相电流相位互差 120°（三相同类负载），只需电流有效值：</p>
+        </div>
+        <div class="info-formula">I<sub>N</sub> = √(I<sub>A</sub>² + I<sub>B</sub>² + I<sub>C</sub>² − I<sub>A</sub>I<sub>B</sub> − I<sub>B</sub>I<sub>C</sub> − I<sub>C</sub>I<sub>A</sub>)</div>
+        <div class="mode-explain">
+          <span class="explain-tag tag-precise">精确</span>
+          <p>输入每相电流相对本相电压的相角，按相量合成：</p>
+        </div>
+        <div class="info-formula">I<sub>N</sub> = | I<sub>A</sub>∠θ<sub>A</sub> + I<sub>B</sub>∠(θ<sub>B</sub> − 120°) + I<sub>C</sub>∠(θ<sub>C</sub> + 120°) |</div>
+        <p class="info-small">相角约定：以本相电压为 0°，电流滞后为负、超前为正。</p>
+      </section>
+
+      <section class="info-section">
+        <h3>为什么不是直接相加？</h3>
+        <p>三相电流的相位不同，中性线电流是它们的矢量和。三相平衡时互相抵消，零线电流接近 0；不平衡时才会出现零序电流。图中显示的是三相电流的合成矢量，实际中性线电流方向与其相反、大小相同。</p>
+      </section>
+
+      <section class="info-callout">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 3 2.8 20h18.4L12 3Z"/>
+          <path d="M12 9v5M12 17.5v.2"/>
+        </svg>
+        <div>
+          <strong>谐波不在计算范围内</strong>
+          <p>3 次、9 次等零序谐波会在中性线同相叠加，可能使零线电流超过相电流。非线性负载较大时，请使用谐波分析仪实测。</p>
+        </div>
+      </section>
+
+      <section class="info-section">
+        <h3>结果说明</h3>
+        <p>不平衡度按 max(|I<sub>A</sub> − I<sub>avg</sub>|, |I<sub>B</sub> − I<sub>avg</sub>|, |I<sub>C</sub> − I<sub>avg</sub>|) ÷ I<sub>avg</sub> × 100% 估算，仅反映三相电流幅值的偏差。</p>
+        <p>本工具用于工程估算，不替代电气设计规范、中性线截面校验与现场实测。若零线电流偏高，请复核负荷分配、相序与谐波情况。</p>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog class="sheet" id="pfDialog" aria-labelledby="pfTitle">
+    <div class="sheet-grabber" aria-hidden="true"></div>
+    <header class="sheet-head">
+      <div>
+        <p class="sheet-kicker">CONVERTER</p>
+        <h2 id="pfTitle">功率因数换算相角</h2>
+      </div>
+      <button class="sheet-close" type="button" data-close="pfDialog" aria-label="关闭">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <div class="sheet-body">
+      <p class="sheet-desc">把功率因数换算成电流相角，并统一应用到三相。若各相功率因数不同，请分别输入相角。</p>
+
+      <label class="pf-label" for="pfInput">功率因数 cos φ</label>
+      <div class="pf-input-wrap">
+        <input id="pfInput" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="0.90" aria-describedby="pfRange">
+        <span id="pfRange">0 – 1</span>
+      </div>
+
+      <div class="nature-switch" id="pfNature" role="group" aria-label="负载性质">
+        <button class="nature-btn is-active" type="button" data-nature="lag" aria-pressed="true">感性 · 滞后</button>
+        <button class="nature-btn" type="button" data-nature="lead" aria-pressed="false">容性 · 超前</button>
+      </div>
+
+      <div class="pf-preview">
+        <span>对应相角 θ</span>
+        <strong id="pfAngle">−25.8°</strong>
+      </div>
+
+      <button class="primary-btn" id="applyPfBtn" type="button">应用到 A / B / C 三相</button>
+      <p class="sheet-footnote">感性负载电流滞后电压，相角取负；容性负载电流超前电压，相角取正。</p>
+    </div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>window.__STANDALONE__ = true;</script>
+  <script>
+/*
+ * 零线电流计算核心
+ * 三相四线制、工频正弦波、正序 ABC。
+ * 角度约定：以各相电压为基准，电流滞后为负、超前为正。
+ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) {
+    module.exports = api;
+  } else {
+    root.NeutralCalc = api;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  var PHASE_OFFSETS = [0, -120, 120];
+  var EPSILON = 1e-9;
+  var DEG = Math.PI / 180;
+
+  function toNumber(value) {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (value === null || value === undefined) return 0;
+    var n = parseFloat(String(value).replace(/,/g, '.').trim());
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function clean(value) {
+    return Math.abs(value) < EPSILON ? 0 : value;
+  }
+
+  function normalizeAngle(degrees) {
+    var n = toNumber(degrees);
+    var angle = ((n + 180) % 360 + 360) % 360 - 180;
+    return angle === 0 ? 0 : angle;
+  }
+
+  /**
+   * 三相电流有效值相同、相位互差 120° 时的零线电流。
+   * IN² = IA² + IB² + IC² − IA·IB − IB·IC − IC·IA
+   */
+  function neutralFromMagnitudes(ia, ib, ic) {
+    var a = Math.max(0, toNumber(ia));
+    var b = Math.max(0, toNumber(ib));
+    var c = Math.max(0, toNumber(ic));
+    var radicand = a * a + b * b + c * c - a * b - b * c - c * a;
+    return clean(Math.sqrt(Math.max(0, radicand)));
+  }
+
+  /**
+   * 相量求和。angles 为各相电流相对本相电压的相角。
+   */
+  function vectorSum(currents, angles) {
+    var terms = [];
+    var x = 0;
+    var y = 0;
+
+    for (var i = 0; i < 3; i += 1) {
+      var current = Math.max(0, toNumber(currents && currents[i]));
+      var angle = normalizeAngle(angles && angles[i]);
+      var totalAngle = normalizeAngle(angle + PHASE_OFFSETS[i]);
+      var radians = totalAngle * DEG;
+      var xi = clean(current * Math.cos(radians));
+      var yi = clean(current * Math.sin(radians));
+
+      x += xi;
+      y += yi;
+      terms.push({
+        index: i,
+        current: current,
+        angle: angle,
+        totalAngle: totalAngle,
+        x: xi,
+        y: yi
+      });
+    }
+
+    x = clean(x);
+    y = clean(y);
+    return {
+      x: x,
+      y: y,
+      magnitude: clean(Math.hypot(x, y)),
+      terms: terms
+    };
+  }
+
+  function compute(currents, angles, mode) {
+    var mags = [0, 1, 2].map(function (i) {
+      return Math.max(0, toNumber(currents && currents[i]));
+    });
+    var angs = [0, 1, 2].map(function (i) {
+      return normalizeAngle(angles && angles[i]);
+    });
+    var precise = mode === 'precise';
+    var effectiveAngles = precise ? angs : [0, 0, 0];
+    var vector = vectorSum(mags, effectiveAngles);
+    var neutral = precise
+      ? vector.magnitude
+      : neutralFromMagnitudes(mags[0], mags[1], mags[2]);
+    var average = (mags[0] + mags[1] + mags[2]) / 3;
+    var maxPhase = Math.max(mags[0], mags[1], mags[2]);
+    var arithmeticSum = mags[0] + mags[1] + mags[2];
+    var unbalance = average > EPSILON
+      ? Math.max(
+          Math.abs(mags[0] - average),
+          Math.abs(mags[1] - average),
+          Math.abs(mags[2] - average)
+        ) / average * 100
+      : 0;
+    var balanced = maxPhase > EPSILON &&
+      neutral <= Math.max(0.01, average * 0.005);
+
+    return {
+      mode: precise ? 'precise' : 'quick',
+      currents: mags,
+      angles: angs,
+      effectiveAngles: effectiveAngles,
+      vector: vector,
+      neutral: neutral,
+      average: average,
+      maxPhase: maxPhase,
+      arithmeticSum: arithmeticSum,
+      unbalance: unbalance,
+      ratioToMax: maxPhase > EPSILON ? neutral / maxPhase : 0,
+      ratioToAverage: average > EPSILON ? neutral / average : 0,
+      isEmpty: maxPhase <= EPSILON,
+      isBalanced: balanced
+    };
+  }
+
+  /**
+   * 功率因数换算相角。nature: 'lag'（感性）或 'lead'（容性）。
+   */
+  function angleFromPowerFactor(pf, nature) {
+    var p = clamp(toNumber(pf), 0, 1);
+    var angle = Math.acos(p) / DEG;
+    if (nature === 'lead') return clean(angle);
+    return clean(-angle) + 0;
+  }
+
+  return {
+    PHASE_OFFSETS: PHASE_OFFSETS,
+    compute: compute,
+    vectorSum: vectorSum,
+    neutralFromMagnitudes: neutralFromMagnitudes,
+    normalizeAngle: normalizeAngle,
+    angleFromPowerFactor: angleFromPowerFactor
+  };
+});
+
+  </script>
+  <script>
+(function () {
+  'use strict';
+
+  var NC = window.NeutralCalc;
+  var STORAGE_KEY = 'neutral-current-calculator-v1';
+  var SAMPLE_CURRENTS = [32, 28, 24];
+  var SAMPLE_ANGLES = [0, 0, 0];
+  var PHASE_NAMES = ['A', 'B', 'C'];
+  var PHASE_COLORS = ['#FBBF24', '#4ADE80', '#FB7185'];
+  var DEG = Math.PI / 180;
+
+  function byId(id) {
+    return document.getElementById(id);
+  }
+
+  var els = {
+    resultValue: byId('resultValue'),
+    statusChip: byId('statusChip'),
+    statusText: byId('statusText'),
+    avgValue: byId('avgValue'),
+    unbalanceValue: byId('unbalanceValue'),
+    sumValue: byId('sumValue'),
+    phasor: byId('phasor'),
+    modeSwitch: byId('modeSwitch'),
+    modeBtns: Array.prototype.slice.call(document.querySelectorAll('.mode-btn')),
+    phaseGrid: byId('phaseGrid'),
+    currentInputs: [byId('currentA'), byId('currentB'), byId('currentC')],
+    angleInputs: [byId('angleA'), byId('angleB'), byId('angleC')],
+    sampleNote: byId('sampleNote'),
+    demoBtn: byId('demoBtn'),
+    clearBtn: byId('clearBtn'),
+    pfBtn: byId('pfBtn'),
+    modeHint: byId('modeHint'),
+    insight: byId('insight'),
+    insightText: byId('insightText'),
+    calcSteps: byId('calcSteps'),
+    formulaHint: byId('formulaHint'),
+    shareBtn: byId('shareBtn'),
+    infoBtn: byId('infoBtn'),
+    infoDialog: byId('infoDialog'),
+    pfDialog: byId('pfDialog'),
+    pfInput: byId('pfInput'),
+    pfAngle: byId('pfAngle'),
+    pfNature: byId('pfNature'),
+    pfNatureBtns: Array.prototype.slice.call(document.querySelectorAll('.nature-btn')),
+    applyPfBtn: byId('applyPfBtn'),
+    toast: byId('toast'),
+    liveResult: byId('liveResult')
+  };
+
+  var state = {
+    mode: 'quick',
+    isSample: true,
+    pfNature: 'lag',
+    pfValue: '0.90',
+    lastResult: null
+  };
+
+  var saveTimer = null;
+  var liveTimer = null;
+  var toastTimer = null;
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function parseInput(input) {
+    var raw = input.value.trim();
+    if (raw === '') return { raw: raw, value: null, valid: true };
+    var value = Number(raw.replace(/,/g, '.'));
+    if (!Number.isFinite(value)) return { raw: raw, value: null, valid: false };
+    return { raw: raw, value: value, valid: true };
+  }
+
+  function trimNumber(value, digits) {
+    if (!Number.isFinite(value)) return '';
+    var rounded = Number(value.toFixed(digits));
+    return String(rounded);
+  }
+
+  function formatCurrent(value) {
+    if (!Number.isFinite(value)) return '—';
+    if (Math.abs(value) >= 1000) return value.toFixed(0);
+    if (Math.abs(value) >= 100) return value.toFixed(1);
+    return value.toFixed(2);
+  }
+
+  function formatPercent(value) {
+    if (!Number.isFinite(value)) return '—';
+    return value.toFixed(value >= 100 ? 0 : 1);
+  }
+
+  function formatCompact(value) {
+    if (!Number.isFinite(value)) return '—';
+    var abs = Math.abs(value);
+    var digits = abs >= 1000 ? 0 : abs >= 100 ? 1 : 2;
+    var text = value.toFixed(digits);
+    if (text.indexOf('.') !== -1) {
+      text = text.replace(/0+$/, '').replace(/\.$/, '');
+    }
+    return text.replace('-', '−');
+  }
+
+  function formatAngle(value) {
+    if (!Number.isFinite(value)) return '—';
+    var text = value.toFixed(1);
+    if (text === '-0.0') text = '0.0';
+    return text.replace('-', '−') + '°';
+  }
+
+  function formatSigned(value) {
+    if (!Number.isFinite(value)) return '—';
+    var text = value.toFixed(2);
+    if (text === '-0.00') text = '0.00';
+    return text.replace('-', '−');
+  }
+
+  function setMetric(element, value, unit) {
+    element.textContent = value;
+    if (unit) {
+      var em = document.createElement('em');
+      em.textContent = unit;
+      element.appendChild(document.createTextNode(' '));
+      element.appendChild(em);
+    }
+  }
+
+  function readCurrents() {
+    return els.currentInputs.map(function (input) {
+      var parsed = parseInput(input);
+      return parsed.valid && parsed.value !== null ? Math.max(0, parsed.value) : 0;
+    });
+  }
+
+  function readAngles() {
+    return els.angleInputs.map(function (input) {
+      var parsed = parseInput(input);
+      return parsed.valid && parsed.value !== null ? parsed.value : 0;
+    });
+  }
+
+  function validateInputs() {
+    els.currentInputs.forEach(function (input) {
+      var parsed = parseInput(input);
+      var invalid = !parsed.valid || (parsed.value !== null && parsed.value < 0);
+      input.classList.toggle('is-invalid', invalid);
+    });
+    els.angleInputs.forEach(function (input) {
+      var parsed = parseInput(input);
+      input.classList.toggle('is-invalid', !parsed.valid);
+    });
+  }
+
+  function getStatus(result) {
+    if (result.isEmpty) return { tone: 'idle', text: '等待输入' };
+    if (result.isBalanced) return { tone: 'green', text: '三相平衡' };
+    if (result.neutral > Math.max(result.maxPhase * 1.02, result.maxPhase + 0.01)) {
+      return { tone: 'red', text: '零线电流偏高' };
+    }
+    var zeroCount = result.currents.filter(function (current) {
+      return current <= 1e-9;
+    }).length;
+    if (zeroCount === 2) return { tone: 'amber', text: '单相负载' };
+    if (zeroCount === 1) return { tone: 'amber', text: '两相负载' };
+    return { tone: 'amber', text: '存在不平衡' };
+  }
+
+  function getInsight(result, status) {
+    if (result.isEmpty) {
+      return { tone: 'idle', text: '输入 A / B / C 三相电流，零线电流会实时计算。' };
+    }
+    if (result.neutral > Math.max(result.maxPhase * 1.02, result.maxPhase + 0.01)) {
+      return {
+        tone: 'red',
+        text: '相角差异使零线电流超过最大相电流，请复核中性线载流能力与负荷性质。'
+      };
+    }
+    if (result.isBalanced) {
+      return { tone: 'green', text: '三相电流基本平衡，零线电流接近 0 A。' };
+    }
+    var zeroCount = result.currents.filter(function (current) {
+      return current <= 1e-9;
+    }).length;
+    if (zeroCount === 2) {
+      return { tone: 'amber', text: '只有一相有电流，零线电流等于该相电流。' };
+    }
+    if (zeroCount === 1) {
+      return { tone: 'amber', text: '两相有电流，零线电流为这两相的矢量和，不等于两相电流之和。' };
+    }
+    if (result.unbalance >= 30) {
+      return {
+        tone: 'red',
+        text: '三相负荷明显不平衡，建议重新分配单相负载。当前零线电流为最大相电流的 ' + formatPercent(result.ratioToMax * 100) + '%。'
+      };
+    }
+    if (result.unbalance >= 10) {
+      return {
+        tone: 'amber',
+        text: '三相负荷存在不平衡，零线电流约为最大相电流的 ' + formatPercent(result.ratioToMax * 100) + '%。'
+      };
+    }
+    return {
+      tone: status.tone === 'amber' ? 'amber' : 'green',
+      text: '零线电流为三相电流的矢量和，约为最大相电流的 ' + formatPercent(result.ratioToMax * 100) + '%。'
+    };
+  }
+
+  function buildPhasor(result, hasInput) {
+    var cx = 70;
+    var cy = 70;
+    var radius = 41;
+    var maxValue = Math.max(result.maxPhase, result.neutral);
+    var scale = maxValue > 1e-9 ? radius / maxValue : 0;
+    var opacity = hasInput ? '1' : '.52';
+    var pieces = [];
+
+    function point(angleDeg, length) {
+      var rad = angleDeg * DEG;
+      return {
+        x: cx + Math.cos(rad) * length,
+        y: cy - Math.sin(rad) * length
+      };
+    }
+
+    function fixed(value) {
+      return Number(value.toFixed(2));
+    }
+
+    pieces.push('<svg viewBox="0 0 140 140" aria-hidden="true">');
+    pieces.push('<defs>');
+    pieces.push('<filter id="nGlow" x="-70%" y="-70%" width="240%" height="240%">');
+    pieces.push('<feGaussianBlur stdDeviation="2.8" result="blur"/>');
+    pieces.push('<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>');
+    pieces.push('</filter>');
+    pieces.push('</defs>');
+
+    pieces.push('<circle cx="70" cy="70" r="41" fill="none" stroke="rgba(255,255,255,.10)" stroke-width=".8" stroke-dasharray="2.5 3"/>');
+    pieces.push('<circle cx="70" cy="70" r="20.5" fill="none" stroke="rgba(255,255,255,.04)" stroke-width=".7"/>');
+    pieces.push('<path d="M70 26V114M26 70H114" stroke="rgba(255,255,255,.04)" stroke-width=".7"/>');
+
+    for (var t = 0; t < 12; t += 1) {
+      var tick = point(t * 30, 44.2);
+      var tickEnd = point(t * 30, 46.8);
+      pieces.push('<line x1="' + fixed(tick.x) + '" y1="' + fixed(tick.y) + '" x2="' + fixed(tickEnd.x) + '" y2="' + fixed(tickEnd.y) + '" stroke="rgba(255,255,255,.10)" stroke-width=".7" stroke-linecap="round"/>');
+    }
+
+    // 固定相位参考轴
+    var baseAngles = [90, -30, 210];
+    for (var b = 0; b < 3; b += 1) {
+      var ref = point(baseAngles[b], 41);
+      pieces.push('<line x1="70" y1="70" x2="' + fixed(ref.x) + '" y2="' + fixed(ref.y) + '" stroke="' + PHASE_COLORS[b] + '" stroke-opacity=".16" stroke-width=".8" stroke-dasharray="2 2.4" stroke-linecap="round"/>');
+    }
+
+    // 三相电流矢量
+    result.vector.terms.forEach(function (term, index) {
+      if (term.current <= 1e-9) return;
+      var screenAngle = term.totalAngle + 90;
+      var end = point(screenAngle, term.current * scale);
+      pieces.push('<line x1="70" y1="70" x2="' + fixed(end.x) + '" y2="' + fixed(end.y) + '" stroke="' + PHASE_COLORS[index] + '" stroke-width="2.5" stroke-linecap="round" opacity=".94"/>');
+      pieces.push('<circle cx="' + fixed(end.x) + '" cy="' + fixed(end.y) + '" r="2.15" fill="' + PHASE_COLORS[index] + '"/>');
+    });
+
+    // 平行四边形的合成矢量
+    if (hasInput && result.neutral > 1e-9 && result.neutral * scale > 0.7) {
+      var resultAngle = Math.atan2(result.vector.y, result.vector.x) / DEG + 90;
+      var resultEnd = point(resultAngle, result.neutral * scale);
+      pieces.push('<line x1="70" y1="70" x2="' + fixed(resultEnd.x) + '" y2="' + fixed(resultEnd.y) + '" stroke="#67E8F9" stroke-width="3.1" stroke-linecap="round" filter="url(#nGlow)"/>');
+      pieces.push('<circle cx="' + fixed(resultEnd.x) + '" cy="' + fixed(resultEnd.y) + '" r="7.5" fill="none" stroke="#67E8F9" stroke-opacity=".18" stroke-width="1"/>');
+      pieces.push('<circle class="phasor-pulse" cx="' + fixed(resultEnd.x) + '" cy="' + fixed(resultEnd.y) + '" r="4.4" fill="#67E8F9" opacity=".34"/>');
+      pieces.push('<circle cx="' + fixed(resultEnd.x) + '" cy="' + fixed(resultEnd.y) + '" r="3.6" fill="#67E8F9"/>');
+    }
+
+    pieces.push('<circle cx="70" cy="70" r="5.5" fill="none" stroke="rgba(255,255,255,.15)" stroke-width=".8"/>');
+    pieces.push('<circle cx="70" cy="70" r="2.5" fill="#F8FBFF"/>');
+
+    // 固定相别标签
+    var labelRadius = 54;
+    baseAngles.forEach(function (angle, index) {
+      var pos = point(angle, labelRadius);
+      var anchor = 'middle';
+      var dy = '0.35em';
+      if (index === 1) {
+        anchor = 'start';
+        dy = '0.35em';
+      }
+      if (index === 2) {
+        anchor = 'end';
+        dy = '0.35em';
+      }
+      pieces.push('<text x="' + fixed(pos.x) + '" y="' + fixed(pos.y) + '" fill="' + PHASE_COLORS[index] + '" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="9.5" font-weight="700" text-anchor="' + anchor + '" dominant-baseline="middle" opacity="' + opacity + '">' + PHASE_NAMES[index] + '</text>');
+    });
+
+    pieces.push('</svg>');
+    els.phasor.innerHTML = pieces.join('');
+  }
+
+  function renderDetails(result, hasInput) {
+    els.formulaHint.textContent = state.mode === 'precise' ? '相量分解' : '矢量公式';
+
+    if (!hasInput) {
+      els.calcSteps.innerHTML = '<p class="calc-empty">输入电流后显示计算过程。</p>';
+      return;
+    }
+
+    if (state.mode === 'precise') {
+      var rows = result.vector.terms.map(function (term, index) {
+        return '<tr>' +
+          '<td><span class="table-phase"><span class="table-dot" style="background:' + PHASE_COLORS[index] + '"></span>' + PHASE_NAMES[index] + '</span></td>' +
+          '<td>' + formatCompact(term.current) + '</td>' +
+          '<td>' + formatAngle(term.totalAngle) + '</td>' +
+          '<td>' + formatSigned(term.x) + '</td>' +
+          '<td>' + formatSigned(term.y) + '</td>' +
+          '</tr>';
+      }).join('');
+
+      els.calcSteps.innerHTML =
+        '<div class="formula-box">ΣI<sub>x</sub> = ' + formatSigned(result.vector.x) + ' A　　ΣI<sub>y</sub> = ' + formatSigned(result.vector.y) + ' A</div>' +
+        '<div class="formula-box">I<sub>N</sub> = √(ΣI<sub>x</sub>² + ΣI<sub>y</sub>²) = √((' + formatSigned(result.vector.x) + ')² + (' + formatSigned(result.vector.y) + ')²) = <strong>' + formatCurrent(result.neutral) + ' A</strong></div>' +
+        '<table class="calc-table"><thead><tr><th>相</th><th>电流 A</th><th>合成角</th><th>Ix</th><th>Iy</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<p class="calc-note">合成角 = 本相相角 + 相位偏移（A 0°、B −120°、C +120°）；角度以本相电压为基准。</p>';
+      return;
+    }
+
+    var a = result.currents[0];
+    var b = result.currents[1];
+    var c = result.currents[2];
+    var radicand = Math.max(0, a * a + b * b + c * c - a * b - b * c - c * a);
+
+    els.calcSteps.innerHTML =
+      '<div class="formula-box">I<sub>N</sub> = √(I<sub>A</sub>² + I<sub>B</sub>² + I<sub>C</sub>² − I<sub>A</sub>I<sub>B</sub> − I<sub>B</sub>I<sub>C</sub> − I<sub>C</sub>I<sub>A</sub>)</div>' +
+      '<p class="calc-note">快速模式：三相电流相位互差 120°，三相同类负载，不计相角差。</p>' +
+      '<div class="formula-box">I<sub>N</sub> = √(' + formatCompact(a) + '² + ' + formatCompact(b) + '² + ' + formatCompact(c) + '² − ' + formatCompact(a) + '×' + formatCompact(b) + ' − ' + formatCompact(b) + '×' + formatCompact(c) + ' − ' + formatCompact(c) + '×' + formatCompact(a) + ')<br>&nbsp;&nbsp;&nbsp;&nbsp;= √' + formatCompact(radicand) + ' = <strong>' + formatCurrent(result.neutral) + ' A</strong></div>';
+  }
+
+  function render() {
+    validateInputs();
+    var currents = readCurrents();
+    var angles = readAngles();
+    var result = NC.compute(currents, angles, state.mode);
+    state.lastResult = result;
+
+    var hasInput = !result.isEmpty;
+    var status = getStatus(result);
+    var neutralText = hasInput ? formatCurrent(result.neutral) : '—';
+
+    els.resultValue.textContent = neutralText;
+    els.resultValue.classList.toggle('is-large', neutralText.length >= 7);
+    els.statusChip.setAttribute('data-tone', status.tone);
+    els.statusText.textContent = status.text;
+
+    if (hasInput) {
+      setMetric(els.avgValue, formatCurrent(result.average), 'A');
+      setMetric(els.unbalanceValue, formatPercent(result.unbalance), '%');
+      setMetric(els.sumValue, formatCurrent(result.arithmeticSum), 'A');
+    } else {
+      setMetric(els.avgValue, '—');
+      setMetric(els.unbalanceValue, '—');
+      setMetric(els.sumValue, '—');
+    }
+
+    els.shareBtn.disabled = !hasInput;
+
+    var insight = getInsight(result, status);
+    els.insight.setAttribute('data-tone', insight.tone);
+    els.insightText.textContent = insight.text;
+
+    buildPhasor(result, hasInput);
+    renderDetails(result, hasInput);
+
+    clearTimeout(liveTimer);
+    liveTimer = setTimeout(function () {
+      if (!hasInput) {
+        els.liveResult.textContent = '等待输入三相电流';
+      } else {
+        els.liveResult.textContent = '零线电流 ' + formatCurrent(result.neutral) + ' 安培，' + status.text;
+      }
+    }, 550);
+  }
+
+  function updateSampleNote() {
+    els.sampleNote.hidden = !state.isSample;
+  }
+
+  function setInputValues(currents, angles) {
+    els.currentInputs.forEach(function (input, index) {
+      input.value = currents[index] === null || currents[index] === undefined ? '' : String(currents[index]);
+    });
+    els.angleInputs.forEach(function (input, index) {
+      input.value = angles[index] === null || angles[index] === undefined ? '' : String(angles[index]);
+    });
+  }
+
+  function setMode(mode, options) {
+    state.mode = mode === 'precise' ? 'precise' : 'quick';
+    var precise = state.mode === 'precise';
+    els.modeSwitch.setAttribute('data-mode', state.mode);
+    els.modeBtns.forEach(function (button) {
+      var active = button.getAttribute('data-mode') === state.mode;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    els.phaseGrid.classList.toggle('is-precise', precise);
+    els.pfBtn.hidden = !precise;
+    els.modeHint.textContent = precise
+      ? '精确模式：输入每相电流相对本相电压的相角。电流滞后为负、超前为正。'
+      : '快速模式：假设三相电流相位互差 120°，只需输入电流有效值。';
+    if (!options || options.skipRender !== true) render();
+  }
+
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveState, 260);
+  }
+
+  function saveState() {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        currents: els.currentInputs.map(function (input) { return input.value; }),
+        angles: els.angleInputs.map(function (input) { return input.value; }),
+        mode: state.mode,
+        sample: state.isSample
+      }));
+    } catch (error) {
+      /* localStorage may be unavailable in private mode */
+    }
+  }
+
+  function loadState() {
+    try {
+      var raw = window.localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      var saved = JSON.parse(raw);
+      if (!saved || !Array.isArray(saved.currents) || !Array.isArray(saved.angles)) return null;
+      if (saved.currents.length !== 3 || saved.angles.length !== 3) return null;
+      if (saved.mode !== 'quick' && saved.mode !== 'precise') return null;
+      return saved;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function loadSample(showToast) {
+    setInputValues(SAMPLE_CURRENTS, SAMPLE_ANGLES);
+    state.isSample = true;
+    updateSampleNote();
+    validateInputs();
+    render();
+    saveState();
+    if (showToast) toast('已载入示例数据');
+  }
+
+  function clearAll() {
+    setInputValues(['', '', ''], ['', '', '']);
+    state.isSample = false;
+    updateSampleNote();
+    validateInputs();
+    render();
+    saveState();
+    toast('已清零');
+  }
+
+  function normalizeField(input, kind) {
+    var parsed = parseInput(input);
+    if (!parsed.valid) {
+      input.value = '';
+      validateInputs();
+      render();
+      scheduleSave();
+      toast('请输入有效数字');
+      return;
+    }
+    if (parsed.value === null) {
+      render();
+      return;
+    }
+    var value = parsed.value;
+    if (kind === 'current') {
+      if (value < 0) {
+        value = 0;
+        toast('电流不能为负，已按 0 处理');
+      }
+      input.value = trimNumber(clamp(value, 0, 999999), 3);
+    } else {
+      input.value = trimNumber(NC.normalizeAngle(value), 2);
+    }
+    validateInputs();
+    render();
+    scheduleSave();
+  }
+
+  function toast(message) {
+    els.toast.textContent = message;
+    els.toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      els.toast.classList.remove('show');
+    }, 2300);
+  }
+
+  function fallbackCopy(text) {
+    var area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.top = '-1000px';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    var copied = false;
+    try {
+      copied = document.execCommand('copy');
+    } catch (error) {
+      copied = false;
+    }
+    document.body.removeChild(area);
+    return copied;
+  }
+
+  function copyResult() {
+    var result = state.lastResult;
+    if (!result || result.isEmpty) return;
+    var text = [
+      '零线电流计算结果',
+      'A 相 ' + formatCurrent(result.currents[0]) + ' A ｜ B 相 ' + formatCurrent(result.currents[1]) + ' A ｜ C 相 ' + formatCurrent(result.currents[2]) + ' A',
+      '零线电流 IN = ' + formatCurrent(result.neutral) + ' A',
+      '三相不平衡度 ' + formatPercent(result.unbalance) + '%',
+      '计算模式：' + (state.mode === 'precise' ? '精确模式' : '快速模式'),
+      '—— 零线电流计算器'
+    ].join('\n');
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        toast('已复制计算结果');
+      }).catch(function () {
+        if (fallbackCopy(text)) toast('已复制计算结果');
+        else toast('复制失败，请手动选择');
+      });
+    } else if (fallbackCopy(text)) {
+      toast('已复制计算结果');
+    } else {
+      toast('复制失败，请手动选择');
+    }
+  }
+
+  function updatePfPreview() {
+    var parsed = parseInput(els.pfInput);
+    var valid = parsed.valid && parsed.value !== null && parsed.value > 0 && parsed.value <= 1;
+    els.pfInput.classList.toggle('is-invalid', parsed.raw !== '' && !valid);
+    els.applyPfBtn.disabled = !valid;
+    if (!valid) {
+      els.pfAngle.textContent = '—';
+      return;
+    }
+    els.pfAngle.textContent = formatAngle(NC.angleFromPowerFactor(parsed.value, state.pfNature));
+  }
+
+  function setPfNature(nature) {
+    state.pfNature = nature === 'lead' ? 'lead' : 'lag';
+    els.pfNatureBtns.forEach(function (button) {
+      var active = button.getAttribute('data-nature') === state.pfNature;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    updatePfPreview();
+  }
+
+  function openDialog(dialog) {
+    if (!dialog || dialog.open) return;
+    if (typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog.setAttribute('open', '');
+    document.body.classList.add('dialog-open');
+  }
+
+  function closeDialog(dialog) {
+    if (!dialog) return;
+    if (typeof dialog.close === 'function' && dialog.open) {
+      dialog.close();
+    } else {
+      dialog.removeAttribute('open');
+      document.body.classList.remove('dialog-open');
+    }
+  }
+
+  function registerServiceWorker() {
+    if (window.__STANDALONE__) return;
+    if (!('serviceWorker' in navigator)) return;
+    if (location.protocol !== 'http:' && location.protocol !== 'https:') return;
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {
+        /* offline mode is an enhancement, not a requirement */
+      });
+    });
+  }
+
+  function bindEvents() {
+    els.modeBtns.forEach(function (button) {
+      button.addEventListener('click', function () {
+        var mode = button.getAttribute('data-mode');
+        if (mode === state.mode) return;
+        setMode(mode);
+        saveState();
+      });
+    });
+
+    els.currentInputs.concat(els.angleInputs).forEach(function (input, index) {
+      var isAngle = index >= 3;
+      var selectAllOnNextClick = false;
+      input.addEventListener('input', function () {
+        state.isSample = false;
+        updateSampleNote();
+        render();
+        scheduleSave();
+      });
+      input.addEventListener('focus', function () {
+        selectAllOnNextClick = true;
+        window.setTimeout(function () {
+          if (document.activeElement === input) {
+            input.setSelectionRange(0, input.value.length);
+          }
+        }, 0);
+        window.setTimeout(function () {
+          selectAllOnNextClick = false;
+        }, 350);
+      });
+      input.addEventListener('click', function () {
+        if (!selectAllOnNextClick) return;
+        selectAllOnNextClick = false;
+        window.setTimeout(function () {
+          if (document.activeElement === input) {
+            input.setSelectionRange(0, input.value.length);
+          }
+        }, 0);
+      });
+      input.addEventListener('blur', function () {
+        normalizeField(input, isAngle ? 'angle' : 'current');
+      });
+      input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          input.blur();
+        }
+      });
+    });
+
+    els.demoBtn.addEventListener('click', function () {
+      loadSample(true);
+    });
+
+    els.clearBtn.addEventListener('click', clearAll);
+
+    els.shareBtn.addEventListener('click', copyResult);
+
+    els.infoBtn.addEventListener('click', function () {
+      openDialog(els.infoDialog);
+    });
+
+    els.pfBtn.addEventListener('click', function () {
+      if (state.mode !== 'precise') setMode('precise');
+      els.pfInput.value = state.pfValue;
+      els.pfNatureBtns.forEach(function (button) {
+        var active = button.getAttribute('data-nature') === state.pfNature;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+      updatePfPreview();
+      openDialog(els.pfDialog);
+    });
+
+    els.pfInput.addEventListener('input', updatePfPreview);
+    els.pfInput.addEventListener('focus', function () {
+      window.setTimeout(function () {
+        if (document.activeElement === els.pfInput) {
+          els.pfInput.setSelectionRange(0, els.pfInput.value.length);
+        }
+      }, 0);
+    });
+    els.pfInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (!els.applyPfBtn.disabled) els.applyPfBtn.click();
+      }
+    });
+
+    els.pfNatureBtns.forEach(function (button) {
+      button.addEventListener('click', function () {
+        setPfNature(button.getAttribute('data-nature'));
+      });
+    });
+
+    els.applyPfBtn.addEventListener('click', function () {
+      var parsed = parseInput(els.pfInput);
+      if (!parsed.valid || parsed.value === null || parsed.value <= 0 || parsed.value > 1) return;
+      var angle = NC.angleFromPowerFactor(parsed.value, state.pfNature);
+      state.pfValue = els.pfInput.value.trim();
+      els.angleInputs.forEach(function (input) {
+        input.value = trimNumber(angle, 2);
+      });
+      state.isSample = false;
+      updateSampleNote();
+      validateInputs();
+      closeDialog(els.pfDialog);
+      render();
+      saveState();
+      toast('已把 ' + formatAngle(angle) + ' 应用到三相');
+    });
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-close]'), function (button) {
+      button.addEventListener('click', function () {
+        closeDialog(byId(button.getAttribute('data-close')));
+      });
+    });
+
+    [els.infoDialog, els.pfDialog].forEach(function (dialog) {
+      dialog.addEventListener('close', function () {
+        document.body.classList.remove('dialog-open');
+      });
+      dialog.addEventListener('click', function (event) {
+        if (event.target !== dialog) return;
+        var rect = dialog.getBoundingClientRect();
+        var outside = event.clientX < rect.left || event.clientX > rect.right ||
+          event.clientY < rect.top || event.clientY > rect.bottom;
+        if (outside) closeDialog(dialog);
+      });
+    });
+  }
+
+  function init() {
+    bindEvents();
+    var saved = loadState();
+    if (saved) {
+      setInputValues(saved.currents, saved.angles);
+      state.isSample = saved.sample === true;
+      setMode(saved.mode, { skipRender: true });
+    } else {
+      setInputValues(SAMPLE_CURRENTS, SAMPLE_ANGLES);
+      state.isSample = true;
+      setMode('quick', { skipRender: true });
+    }
+    updateSampleNote();
+    render();
+    registerServiceWorker();
+  }
+
+  init();
+})();
+
+  </script>
+</body>
+</html>
